@@ -147,7 +147,7 @@ def random_attack_grr(
     """
     return list(np.random.choice(target_items, n2))
 
-
+from tqdm import tqdm
 def greedy_attack_grr(
     n2: int,
     target_items: List[int],
@@ -193,6 +193,9 @@ def greedy_attack_grr(
     fake_data = []
     eff_items = _effective_items(non_target_items, target_items, attacked_freq)
 
+    # 添加进度条
+    pbar = tqdm(total=n2, desc="Greedy Attack Progress", unit="fake_users")
+
     while n2 > 0:
         distances = _compute_distances(target_items, eff_items, attacked_freq)
         if not distances:
@@ -205,9 +208,10 @@ def greedy_attack_grr(
         fake_data.extend([opt_item] * steps)
         attacked_freq[opt_item] += steps
         n2 -= steps
+        pbar.update(steps)
 
         eff_items = _effective_items(non_target_items, target_items, attacked_freq)
-
+    pbar.close()
     if n2 > 0:
         fake_data.extend(list(np.random.choice(non_target_items, n2, replace=True)))
 

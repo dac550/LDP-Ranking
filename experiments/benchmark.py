@@ -107,3 +107,39 @@ def benchmark_attacks(
                     })
 
     return pd.DataFrame(rows)
+
+
+def plot_benchmark_results(df, metric='rank_gain_mean', save_path=None):
+    """
+    绘制基准测试结果
+
+    Args:
+        df: benchmark_attacks 返回的 DataFrame
+        metric: 要绘制的指标
+        save_path: 保存路径（可选）
+    """
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    for idx, protocol in enumerate(df['protocol'].unique()):
+        ax = axes[idx]
+        protocol_df = df[df['protocol'] == protocol]
+
+        for attack in protocol_df['attack'].unique():
+            attack_df = protocol_df[protocol_df['attack'] == attack]
+            for eps in attack_df['epsilon'].unique():
+                eps_df = attack_df[attack_df['epsilon'] == eps]
+                ax.plot(eps_df['n2_ratio'], eps_df[metric],
+                        marker='o', label=f'{attack}, ε={eps}')
+
+        ax.set_xlabel('Fake User Ratio (n2/n)')
+        ax.set_ylabel(metric.replace('_', ' ').title())
+        ax.set_title(f'{protocol.upper()} Protocol')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()

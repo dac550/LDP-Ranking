@@ -21,7 +21,7 @@ from ..utils.estimators import (
 from ..attacks.grr_attacks import random_attack_grr, greedy_attack_grr, mpoia_attack_grr
 from ..attacks.oue_attacks import random_attack_oue, roa_attack_oue, greedy_attack_oue
 from ..attacks.olh_attacks import random_attack_olh, roa_attack_olh, greedy_attack_olh
-
+import json
 
 @dataclass
 class AttackResult:
@@ -253,3 +253,38 @@ class AttackRunner:
                 kwargs.get('hash_funcs'), kwargs.get('num_hash_funcs', 100)
             )
         raise ValueError(f"Unknown OLH attack '{attack}'. Choose from: random, roa, greedy.")
+
+    def export_config(self, filepath='experiment_config.json'):
+        """导出实验配置到 JSON 文件"""
+        config = {
+            'n': self.n,
+            'd': self.d,
+            'epsilon': self.epsilon,
+            'n2': self.n2,
+            'r': self.r,
+            'x': self.x,
+            'target_items': list(self.target_items),
+            'seed': getattr(self, '_seed', None),
+            'timestamp': datetime.now().isoformat()
+        }
+
+        with open(filepath, 'w') as f:
+            json.dump(config, f, indent=2)
+
+        return filepath
+
+    @classmethod
+    def from_config(cls, config_file, seed=None):
+        """从配置文件加载实验设置"""
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+
+        return cls(
+            n=config['n'],
+            d=config['d'],
+            epsilon=config['epsilon'],
+            n2=config['n2'],
+            r=config['r'],
+            x=config['x'],
+            seed=seed
+        )

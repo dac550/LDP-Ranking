@@ -83,3 +83,33 @@ def compute_rank_dict(freq_dict: Dict[int, int]) -> Dict[int, int]:
     """
     sorted_items = sorted(freq_dict.items(), key=lambda kv: kv[1], reverse=True)
     return {item: rank + 1 for rank, (item, _) in enumerate(sorted_items)}
+
+
+def get_top_k_preservation(target_items, after_ranks, k=10):
+    """
+    计算目标项进入 Top-K 的数量
+
+    Args:
+        target_items: 目标项列表
+        after_ranks: 攻击后排名字典
+        k: Top-K 阈值
+
+    Returns:
+        int: 进入 Top-K 的目标项数量
+    """
+    return sum(1 for item in target_items if after_ranks.get(item, float('inf')) <= k)
+
+import numpy as np
+def get_average_rank_improvement(target_items, before_ranks, after_ranks):
+    """
+    计算平均排名提升
+
+    Returns:
+        float: 平均每个目标项提升的名次
+    """
+    improvements = []
+    for item in target_items:
+        before = before_ranks.get(item, len(before_ranks))
+        after = after_ranks.get(item, len(after_ranks))
+        improvements.append(before - after)
+    return np.mean(improvements) if improvements else 0.0

@@ -32,6 +32,11 @@ def _matrix_inversion(count_report: np.ndarray, n: int, p: float, q: float) -> n
     est_freq = np.array((count_report - n * q) / (p - q)).clip(0)
     return np.round(est_freq)
 
+from functools import lru_cache
+@lru_cache(maxsize=128)
+def _get_grr_params(d: int, epsilon: float) -> float:
+    """缓存GRR参数计算"""
+    return np.exp(epsilon) / (np.exp(epsilon) + d - 1)
 
 def GRR_Client(input_data: int, d: int, epsilon: float) -> int:
     """

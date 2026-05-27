@@ -27,11 +27,22 @@ from typing import Dict, List, Optional, Tuple
 import xxhash
 
 from ..core.olh import LH_Client
-
+from functools import lru_cache
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+class HashCache:
+    """哈希值预计算缓存"""
+
+    def __init__(self, g):
+        self.g = g
+        self._cache = {}
+
+    @lru_cache(maxsize=10000)
+    def get_hash(self, value, seed):
+        """缓存哈希计算结果"""
+        return xxhash.xxh32(str(value), seed=seed).intdigest() % self.g
 
 def _g(epsilon: float) -> int:
     return int(round(np.exp(epsilon))) + 1
@@ -71,19 +82,20 @@ def _calculate_costs(
     Returns:
         Tuple of (best_seed, best_hashed_value) or (None, None) if no valid pair.
     """
+    cache = HashCache(g)
     min_cost = float("inf")
     best_seed, best_y = None, None
 
     for seed in hash_funcs:
         for y in range(g):
             # Skip if this (seed, y) supports any target item
-            if any(_hash(t, seed, g) == y for t in target_items):
+            if any(cache.get_hash(t, seed) == y for t in target_items):
                 continue
 
             # Compute support score for effective attack items
             score = 0.0
             for a in eff_items:
-                if _hash(a, seed, g) == y:
+                if cache.get_hash(a, seed) == y:
                     dists = [freq[t] - freq[a] for t in target_items if freq[t] > freq[a]]
                     if dists:
                         score += 1.0 / min(dists)

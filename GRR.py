@@ -49,13 +49,7 @@ def GRR_Client(input_data, d, epsilon):
     :param epsilon: 隐私保证；
     :return: 隐私化后的值。
     """
-    # 新增类型检查
-    if not isinstance(input_data, (int, np.integer)):
-        raise TypeError(f"input_data must be integer, got {type(input_data)}")
-    if not isinstance(d, (int, np.integer)):
-        raise TypeError(f"d must be integer, got {type(d)}")
-    if not isinstance(epsilon, (float, int, np.floating)):
-        raise TypeError(f"epsilon must be numeric, got {type(epsilon)}")
+
     # 验证输入参数
     if input_data < 0 or input_data >= d:
         raise ValueError('input_data（整数）应在 [0, d-1] 范围内。')      #raise用于在程序中触发异常，中断程序执行
@@ -67,7 +61,7 @@ def GRR_Client(input_data, d, epsilon):
         # GRR 参数设置
         p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
 
-        # 将属性域大小 k 映射到 [0, ..., k-1]
+        # 将属性域大小 k 映射到 [0
         domain = np.arange(d) 
         
         # GRR 扰动函数

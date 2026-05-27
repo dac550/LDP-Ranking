@@ -19,8 +19,9 @@ def _matrix_inversion(count_report: np.ndarray, n: int, p: float, q: float) -> n
     est_freq = np.array((count_report - n * q) / (p - q)).clip(0)
     return np.round(est_freq)
 
+from scipy.sparse import lil_matrix, csr_matrix
 
-def UE_Client(input_data: int, d: int, epsilon: float, optimal: bool = True) -> np.ndarray:
+def UE_Client(input_data: int, d: int, epsilon: float, optimal: bool = True,return_sparse:bool=False) -> np.ndarray:
     """
     OUE client-side perturbation for a single user value.
 
@@ -73,6 +74,8 @@ def UE_Client(input_data: int, d: int, epsilon: float, optimal: bool = True) -> 
         threshold = p if input_ue_data[ind] == 1 else q
         if rnd <= threshold:
             sanitized_vec[ind] = 1
+    if return_sparse:
+        return csr_matrix(sanitized_vec)
 
     return sanitized_vec
 

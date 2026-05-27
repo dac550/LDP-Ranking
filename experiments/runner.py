@@ -77,6 +77,12 @@ class AttackResult:
         return "\n".join(lines)
 
 
+import logging
+from datetime import datetime
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class AttackRunner:
     """
     Orchestrates end-to-end poisoning attack experiments on LDP protocols.
@@ -127,6 +133,7 @@ class AttackRunner:
         self.target_items = generate_target_items(self.true_freq, r, x)
         self.non_target_items = [i for i in range(d) if i not in self.target_items]
 
+
     def run(self, protocol: str, attack: str, **kwargs) -> AttackResult:
         """
         Run a single attack experiment.
@@ -142,6 +149,8 @@ class AttackRunner:
         Raises:
             ValueError: For unknown protocol or attack name.
         """
+        logger.info(f"[{datetime.now()}] 开始实验: protocol={protocol}, attack={attack}")
+        logger.info(f"参数: n={self.n}, n2={self.n2}, d={self.d}, ε={self.epsilon}")
         protocol = protocol.lower()
         attack = attack.lower()
 
@@ -189,7 +198,7 @@ class AttackRunner:
         # --- Step 5: Compute metrics ---
         freq_gain = get_gain(T, before_freq, after_freq)
         rank_gain = get_rank_gain(T, before_ranks, after_ranks)
-
+        logger.info(f"完成! 频数增益={freq_gain}, 排名增益={rank_gain}")
         return AttackResult(
             protocol=protocol,
             attack=attack,

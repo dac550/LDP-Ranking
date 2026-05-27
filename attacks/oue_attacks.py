@@ -211,3 +211,43 @@ def greedy_attack_oue(
             fake_data.append(vec)
 
     return fake_data
+
+
+def greedy_attack_oue_vectorized(n2, target_items, non_target_items, expected_perturbed_freq,
+                                 est_rank_dict, d, epsilon):
+    """
+    向量化版本的贪婪攻击（性能优化）
+    """
+    attacked_freq = np.array([expected_perturbed_freq.get(i, 0) for i in range(d)])
+    fake_data = []
+    E1 = _e1(d, epsilon)
+
+    # 使用 NumPy 数组操作
+    target_mask = np.isin(np.arange(d), target_items)
+    non_target_mask = ~target_mask
+
+    while n2 > 0:
+        # 计算所有非目标项的距离（向量化）
+        distances = np.where(
+            non_target_mask,
+            np.maximum(0, attacked_freq[target_items].max() - attacked_freq + 1),
+            np.inf
+        )
+
+        if np.all(distances == np.inf):
+            break
+
+        # 选择距离最小的 E1 个项目
+        sorted_indices = np.argsort(distances)
+        selected = sorted_indices[:E1]
+
+        # 构建扰动向量
+        perturbation = np.zeros(d)
+        perturbation[selected] = 1
+
+        steps = min(int(distances[selected[0]]), n2)
+        fake_data.extend([perturbation.copy()] * steps)
+        attacked_freq[selected] += steps
+        n2 -= steps
+
+    return fake_data

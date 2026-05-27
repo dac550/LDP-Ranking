@@ -147,3 +147,31 @@ def expected_perturbed_frequencies(
         item: int(np.round(count * p + (n - count) * q))
         for item, count in original_freq.items()
     }
+
+
+def compute_confidence_intervals(est_freq, n, p, q, confidence=0.95):
+    """
+    计算频率估计的置信区间
+
+    Args:
+        est_freq: 估计频率数组
+        n: 总用户数
+        p, q: LDP 参数
+        confidence: 置信水平
+
+    Returns:
+        tuple: (lower_bounds, upper_bounds)
+    """
+    from scipy.stats import norm
+
+    z_score = norm.ppf((1 + confidence) / 2)
+
+    # 计算方差
+    variance = n * p * (1 - p) / (p - q) ** 2
+    std_error = np.sqrt(variance)
+
+    margin = z_score * std_error
+    lower = np.maximum(0, est_freq - margin)
+    upper = est_freq + margin
+
+    return lower, upper

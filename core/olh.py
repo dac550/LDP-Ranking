@@ -23,7 +23,7 @@ def _matrix_inversion(count_report: np.ndarray, n: int, p: float, q: float) -> n
     est_freq = np.array((count_report - n * q) / (p - q)).clip(0)
     return np.round(est_freq)
 
-
+import secrets  # 新增导入
 def LH_Client(input_data: int, d: int, epsilon: float, optimal: bool = True) -> tuple:
     """
     OLH client-side perturbation for a single user value.
@@ -58,11 +58,13 @@ def LH_Client(input_data: int, d: int, epsilon: float, optimal: bool = True) -> 
     if epsilon <= 0:
         raise ValueError("epsilon must be > 0.")
 
-    g = int(round(np.exp(epsilon))) + 1 if optimal else 2
+    if epsilon > 0:
+        g = int(round(np.exp(epsilon))) + 1 if optimal else 2
 
-    rnd_seed = np.random.randint(0, maxsize, dtype=np.int64)
-    hashed_input = xxhash.xxh32(str(input_data), seed=rnd_seed).intdigest() % g
-    sanitized_value = GRR_Client(hashed_input, g, epsilon)
+        # 使用 secrets 生成更安全的随机种子（替代 np.random.randint）
+        rnd_seed = secrets.randbits(64)  # 64位随机数
+        hashed_input_data = (xxhash.xxh32(str(input_data), seed=rnd_seed).intdigest() % g)
+        sanitized_value = GRR_Client(hashed_input_data, g, epsilon)
 
     return (sanitized_value, rnd_seed)
 

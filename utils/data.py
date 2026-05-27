@@ -89,3 +89,54 @@ def generate_target_items(freq_dict: Dict[int, int], r: int, x: int) -> np.ndarr
 
     targets = np.random.choice(top_x, r, replace=False)
     return np.sort(targets)
+
+
+def load_real_dataset(filepath, value_column, d=None):
+    """
+    从CSV文件加载真实数据集
+
+    Args:
+        filepath: CSV文件路径
+        value_column: 包含值的列名
+        d: 域大小（可选，自动推断）
+
+    Returns:
+        pd.Series: 数据集
+    """
+    df = pd.read_csv(filepath)
+    dataset = df[value_column]
+
+    # 验证值范围
+    if d is None:
+        d = dataset.max() + 1
+
+    if dataset.max() >= d or dataset.min() < 0:
+        raise ValueError(f"数据值超出域范围 [0, {d - 1}]")
+
+    return dataset
+
+
+def generate_zipf_dataset(n, d, alpha=1.5):
+    """
+    生成 Zipf 分布的数据集（更真实的分布）
+
+    Args:
+        n: 数据点数量
+        d: 域大小
+        alpha: Zipf 参数（越大越倾斜）
+
+    Returns:
+        pd.Series: 数据集
+    """
+    frequencies = np.arange(1, d + 1) ** (-alpha)
+    frequencies = frequencies / frequencies.sum()
+    frequencies = np.floor(frequencies * n).astype(int)
+
+    # 调整总和到 n
+    diff = n - frequencies.sum()
+    if diff > 0:
+        frequencies[np.argmax(frequencies)] += diff
+
+    values = np.arange(d)
+    repeated = np.repeat(values, frequencies)
+    return pd.Series(repeated)

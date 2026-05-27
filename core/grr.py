@@ -55,6 +55,14 @@ def GRR_Client(input_data: int, d: int, epsilon: float) -> int:
     Example:
         >>> privatized = GRR_Client(input_data=3, d=10, epsilon=1.0)
     """
+    # 新增类型检查
+    if not isinstance(input_data, (int, np.integer)):
+        raise TypeError(f"input_data must be integer, got {type(input_data)}")
+    if not isinstance(d, (int, np.integer)):
+        raise TypeError(f"d must be integer, got {type(d)}")
+    if not isinstance(epsilon, (float, int, np.floating)):
+        raise TypeError(f"epsilon must be numeric, got {type(epsilon)}")
+
     if input_data < 0 or input_data >= d:
         raise ValueError(f"input_data must be in [0, d-1], got {input_data}.")
     if not isinstance(d, int) or d < 2:

@@ -233,3 +233,29 @@ class TestAttackRunner:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+import pytest
+import time
+
+
+class TestPerformance:
+    """性能测试套件"""
+
+    def test_grr_batch_performance(self):
+        """测试 GRR 批量处理性能"""
+        n, d, eps = 10000, 100, 2.0
+        data = np.random.randint(0, d, n)
+
+        start = time.time()
+        results = [GRR_Client(v, d, eps) for v in data]
+        elapsed = time.time() - start
+
+        # 性能断言：10000个用户应在1秒内处理完
+        assert elapsed < 1.0, f"处理太慢: {elapsed:.2f}秒"
+
+    @pytest.mark.slow
+    def test_large_scale_attack(self):
+        """大规模攻击测试（标记为慢速测试）"""
+        runner = AttackRunner(n=50000, d=200, epsilon=2.0, n2=5000, r=5, x=20)
+        result = runner.run(protocol='grr', attack='greedy')
+        assert result.rank_gain >= 0

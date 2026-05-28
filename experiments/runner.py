@@ -306,3 +306,54 @@ class AttackRunner:
         config = ExperimentConfig(n=n, d=d, epsilon=epsilon, n2=n2,
                                   r=r, x=x, m=m, seed=seed)
         return cls(config)
+
+
+import logging
+import sys
+from datetime import datetime
+
+
+def setup_logger(name: str, level: str = "INFO", log_file: str = None) -> logging.Logger:
+    """配置日志系统"""
+    logger = logging.getLogger(name)
+    logger.setLevel(getattr(logging, level.upper()))
+
+    # 控制台处理器
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(
+        logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    )
+    logger.addHandler(console_handler)
+
+    # 文件处理器（可选）
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        logger.addHandler(file_handler)
+
+    return logger
+
+
+class AttackRunner:
+    # ... 现有代码 ...
+
+    def run(self, protocol: str, attack: str, **kwargs) -> AttackResult:
+        logger = logging.getLogger(__name__)
+        logger.info(f"开始攻击实验: protocol={protocol}, attack={attack}")
+        logger.debug(f"参数: n={self.n}, n2={self.n2}, d={self.d}, ε={self.epsilon}")
+
+        start_time = datetime.now()
+
+        try:
+            # ... 执行攻击 ...
+            result = AttackResult(...)
+
+            elapsed = (datetime.now() - start_time).total_seconds()
+            logger.info(f"完成! 频数增益={result.freq_gain}, 排名增益={result.rank_gain}, 耗时={elapsed:.2f}s")
+
+            return result
+        except Exception as e:
+            logger.error(f"攻击失败: {e}", exc_info=True)
+            raise

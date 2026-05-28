@@ -353,3 +353,57 @@ def greedy_attack_grr_with_progress(
         fake_data.extend(list(np.random.choice(non_target_items, n2, replace=True)))
 
     return fake_data
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1024)
+def _precompute_mpoia_delta(
+        target_freq: int,
+        attack_freq: int,
+        n: int,
+        p: float,
+        d: int,
+        confidence: float = 0.9,
+) -> int:
+    """预计算MPOIA的delta值"""
+    from scipy.stats import norm
+
+    q = (1 - p) / (d - 1)
+    z_alpha = norm.ppf(confidence)
+
+    E_D = target_freq - attack_freq
+    Var_D = (
+            target_freq * p * (1 - p) +
+            (n - target_freq) * q * (1 - q) +
+            attack_freq * p * (1 - p) +
+            (n - attack_freq) * q * (1 - q)
+    )
+
+    return int(E_D + z_alpha * np.sqrt(Var_D)) + 1
+
+
+def _compute_distances_mpoia_cached(
+        target_items: List[int],
+        eff_items: List[int],
+        original_freq: Dict[int, int],
+        perturbed_freq: Dict[int, int],
+        n: int,
+        p: float,
+        confidence: float = 0.9,
+) -> Dict[int, int]:
+    """使用缓存的MPOIA距离计算"""
+    d = len(perturbed_freq)
+
+    distances = {}
+    for a in eff_items:
+        qualifying = [t for t in target_items if perturbed_freq[t] >= perturbed_freq[a]]
+        if qualifying:
+            closest = min(qualifying, key=lambda t: perturbed_freq[t])
+            delta = _precompute_mpoia_delta(
+                original_freq[closest], original_freq[a],
+                n, p, d, confidence
+            )
+            distances[a] = delta
+    return distances

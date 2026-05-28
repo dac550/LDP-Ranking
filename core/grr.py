@@ -34,9 +34,11 @@ def _matrix_inversion(count_report: np.ndarray, n: int, p: float, q: float) -> n
 
 from functools import lru_cache
 @lru_cache(maxsize=128)
-def _get_grr_params(d: int, epsilon: float) -> float:
-    """缓存GRR参数计算"""
-    return np.exp(epsilon) / (np.exp(epsilon) + d - 1)
+def _get_grr_params(d: int, epsilon: float) -> tuple:
+    """缓存GRR参数计算结果"""
+    p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
+    q = (1 - p) / (d - 1)
+    return p, q
 
 def GRR_Client(input_data: int, d: int, epsilon: float) -> int:
     """
@@ -114,8 +116,7 @@ def GRR_Aggregator_MI(reports: list, d: int, epsilon: float) -> np.ndarray:
         raise ValueError("epsilon must be > 0.")
 
     n = len(reports)
-    p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
-    q = (1 - p) / (d - 1)
+    p, q = _get_grr_params(d, epsilon)
 
     count_report = np.zeros(d)
     for rep in reports:

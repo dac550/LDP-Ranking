@@ -143,3 +143,104 @@ def plot_benchmark_results(df, metric='rank_gain_mean', save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
     plt.show()
+
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import partial
+
+
+def _run_single_trial(
+        protocol: str,
+        attack: str,
+        eps: float,
+        n2: int,
+        n: int,
+        d: int,
+        r: int,
+        x: int,
+        seed: int,
+) -> tuple:
+    """单个试验的运行函数（用于并行）"""
+    try:
+        runner = AttackRunner.from_params(
+            n=n, d=d, epsilon=eps, n2=n2,
+            r=r, x=x, seed=seed
+        )
+        result = runner.run(protocol=protocol, attack=attack)
+        return result.freq_gain, result.rank_gain, None
+    except Exception as e:
+        return 0, 0, str(e)
+
+
+def benchmark_attacks_parallel(
+        n: int,
+        d: int,
+        epsilons: List[float],
+        n2_ratios: List[float],
+        protocols: List[str],
+        attacks: Dict[str, List[str]],
+        r: int = 3,
+        x: int = 10,
+        trials: int = 5,
+        seed: Optional[int] = None,
+        max_workers: int = 4,
+        verbose: bool = True,
+) -> pd.DataFrame:
+    """并行版本的基准测试"""
+    rows = []
+
+    for protocol in protocols:
+        for attack in attacks.get(protocol, []):
+            for eps in epsilons:
+                for ratio in n2_ratios:
+                    n2 = int(n * ratio)
+
+                    # 准备所有试验的种子
+                    base_seed = seed if seed is not None else 0
+                    seeds = [base_seed + i for i in range(trials)]
+
+                    # 并行执行
+                    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+                        fn = partial(
+                            _run_single_trial,
+                            protocol=protocol,
+                            attack=attack,
+                            eps=eps,
+                            n2=n2,
+                            n=n,
+                            d=d,
+                            r=r,
+                            x=x,
+                        )
+                        futures = [executor.submit(fn, seed=s) for s in seeds]
+
+                        freq_gains = []
+                        rank_gains = []
+                        errors = []
+
+                        for future in as_completed(futures):
+                            fg, rg, err = future.result()
+                            if err:
+                                errors.append(err)
+                            else:
+                                freq_gains.append(fg)
+                                rank_gains.append(rg)
+
+                    if verbose:
+                        print(f"[{protocol.upper()}] {attack} | ε={eps} | "
+                              f"n2={n2} | rank_gain={np.mean(rank_gains):.1f}±{np.std(rank_gains):.1f}")
+
+                    rows.append({
+                        "protocol": protocol,
+                        "attack": attack,
+                        "epsilon": eps,
+                        "n2_ratio": ratio,
+                        "n2": n2,
+                        "freq_gain_mean": np.mean(freq_gains) if freq_gains else 0,
+                        "freq_gain_std": np.std(freq_gains) if freq_gains else 0,
+                        "rank_gain_mean": np.mean(rank_gains) if rank_gains else 0,
+                        "rank_gain_std": np.std(rank_gains) if rank_gains else 0,
+                        "errors": len(errors),
+                    })
+
+    return pd.DataFrame(rows)

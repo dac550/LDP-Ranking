@@ -251,3 +251,25 @@ def greedy_attack_oue_vectorized(n2, target_items, non_target_items, expected_pe
         n2 -= steps
 
     return fake_data
+
+
+def _compute_distances_vectorized_oue(
+        target_items: List[int],
+        eff_items: List[int],
+        freq: Dict[int, int],
+) -> np.ndarray:
+    """向量化计算所有有效攻击项的距离"""
+    max_idx = max(max(target_items), max(eff_items)) if eff_items else max(target_items)
+    freq_array = np.array([freq.get(i, 0) for i in range(max_idx + 1)])
+
+    eff_items_array = np.array(eff_items)
+    eff_freqs = freq_array[eff_items_array]
+
+    target_freqs = freq_array[target_items]
+    target_max = np.max(target_freqs)
+
+    # 广播计算
+    distances = target_max - eff_freqs + 1
+    distances = np.maximum(0, distances)
+
+    return dict(zip(eff_items, distances))

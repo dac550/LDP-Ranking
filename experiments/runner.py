@@ -253,3 +253,56 @@ class AttackRunner:
                 kwargs.get('hash_funcs'), kwargs.get('num_hash_funcs', 100)
             )
         raise ValueError(f"Unknown OLH attack '{attack}'. Choose from: random, roa, greedy.")
+
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class ExperimentConfig:
+    """实验配置类（不可变）"""
+    n: int  # 诚实用户数
+    d: int  # 域大小
+    epsilon: float  # 隐私预算
+    n2: int  # 假用户数
+    r: int = 3  # 目标项数量
+    x: int = 10  # 目标选择池大小
+    m: float = 10.0  # 数据倾斜参数
+    seed: Optional[int] = None
+
+    def __post_init__(self):
+        """参数验证"""
+        if self.n <= 0:
+            raise ValueError(f"n must be > 0, got {self.n}")
+        if self.d < 2:
+            raise ValueError(f"d must be >= 2, got {self.d}")
+        if self.epsilon <= 0:
+            raise ValueError(f"epsilon must be > 0, got {self.epsilon}")
+        if self.n2 < 0:
+            raise ValueError(f"n2 must be >= 0, got {self.n2}")
+        if self.r > self.d:
+            raise ValueError(f"r ({self.r}) cannot exceed d ({self.d})")
+        if self.x > self.d:
+            raise ValueError(f"x ({self.x}) cannot exceed d ({self.d})")
+        if self.r > self.x:
+            raise ValueError(f"r ({self.r}) cannot exceed x ({self.x})")
+
+class AttackRunner:
+    def __init__(self, config: ExperimentConfig):
+        self.config = config
+        if config.seed is not None:
+            np.random.seed(config.seed)
+
+        self.dataset = generate_dataset(config.n, config.d, config.m)
+        self.true_freq = generate_freq_dict(self.dataset)
+        self.target_items = generate_target_items(self.true_freq, config.r, config.x)
+        self.non_target_items = [i for i in range(config.d) if i not in self.target_items]
+
+    # 兼容旧接口的构造函数
+    @classmethod
+    def from_params(cls, n: int, d: int, epsilon: float, n2: int,
+                    r: int = 3, x: int = 10, m: float = 10.0, seed: int = None):
+        config = ExperimentConfig(n=n, d=d, epsilon=epsilon, n2=n2,
+                                  r=r, x=x, m=m, seed=seed)
+        return cls(config)

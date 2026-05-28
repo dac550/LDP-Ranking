@@ -111,3 +111,45 @@ def LH_Aggregator_MI(reports: list, d: int, epsilon: float, optimal: bool = True
     q = 1.0 / g
 
     return _matrix_inversion(count_report, n, p, q)
+
+from typing import List
+class HashFunctionPool:
+    """哈希函数池，避免重复生成随机种子"""
+
+    def __init__(self, pool_size: int = 1000):
+        self.pool_size = pool_size
+        self._seeds = None
+        self._current_idx = 0
+        self._refresh()
+
+    def _refresh(self):
+        self._seeds = [secrets.randbits(64) for _ in range(self.pool_size)]
+        self._current_idx = 0
+
+    def get_seed(self) -> int:
+        seed = self._seeds[self._current_idx]
+        self._current_idx = (self._current_idx + 1) % self.pool_size
+        if self._current_idx == 0:
+            self._refresh()
+        return seed
+
+    def get_seeds(self, count: int) -> List[int]:
+        """批量获取多个种子"""
+        seeds = []
+        for _ in range(count):
+            seeds.append(self.get_seed())
+        return seeds
+
+
+# 全局哈希函数池实例
+_HASH_POOL = HashFunctionPool()
+
+
+def LH_Client_Optimized(input_data: int, d: int, epsilon: float, optimal: bool = True) -> tuple:
+    """使用哈希函数池的优化版本"""
+    # ... 参数验证 ...
+    g = int(round(np.exp(epsilon))) + 1 if optimal else 2
+    rnd_seed = _HASH_POOL.get_seed()
+    hashed = xxhash.xxh32(str(input_data), seed=rnd_seed).intdigest() % g
+    sanitized = GRR_Client(hashed, g, epsilon)
+    return (sanitized, rnd_seed)

@@ -126,30 +126,30 @@ def GRR_Aggregator_MI(reports: list, d: int, epsilon: float) -> np.ndarray:
     return _matrix_inversion(count_report, n, p, q)
 
 
-# 新增函数：批量处理多个用户
-def GRR_Client_Batch(input_data_list, d, epsilon):
+# 优化：添加向量化的批量客户端处理函数
+def GRR_Client_Batch(input_data: np.ndarray, d: int, epsilon: float) -> np.ndarray:
     """
     批量扰动多个用户数据（向量化实现）
 
     Args:
-        input_data_list: 用户数据列表或numpy数组
+        input_data: 用户数据数组
         d: 域大小
         epsilon: 隐私预算
 
     Returns:
-        numpy数组: 扰动后的值列表
+        扰动后的值数组
     """
-    n = len(input_data_list)
+    n = len(input_data)
     p = np.exp(epsilon) / (np.exp(epsilon) + d - 1)
+    domain = np.arange(d)
 
-    # 向量化操作
     keep_mask = np.random.binomial(1, p, n).astype(bool)
-    results = np.array(input_data_list, copy=True)
+    results = input_data.copy()
 
-    for i in range(n):
-        if not keep_mask[i]:
-            # 随机选择非原值的其他值
-            choices = np.delete(np.arange(d), results[i])
-            results[i] = np.random.choice(choices)
+    # 需要扰动的索引
+    perturb_indices = np.where(~keep_mask)[0]
+    for idx in perturb_indices:
+        choices = domain[domain != input_data[idx]]
+        results[idx] = np.random.choice(choices)
 
     return results

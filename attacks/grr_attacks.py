@@ -304,3 +304,52 @@ def mpoia_attack_grr(
         fake_data.extend(list(np.random.choice(non_target_items, n2, replace=True)))
 
     return fake_data
+
+
+from tqdm import tqdm
+
+
+def greedy_attack_grr_with_progress(
+        n2: int,
+        target_items: List[int],
+        non_target_items: List[int],
+        expected_perturbed_freq: Dict[int, int],
+        est_rank_dict: Dict[int, int],
+        verbose: bool = True,
+) -> List[int]:
+    """带进度条和早期停止的贪婪攻击"""
+    attacked_freq = expected_perturbed_freq.copy()
+    fake_data = []
+
+    # 早期停止条件
+    max_iters = 100  # 防止无限循环
+    iter_count = 0
+
+    pbar = tqdm(total=n2, desc="Greedy Attack", unit="fake", disable=not verbose)
+
+    while n2 > 0 and iter_count < max_iters:
+        eff_items = _effective_items(non_target_items, target_items, attacked_freq)
+        if not eff_items:
+            break
+
+        distances = _compute_distances(target_items, eff_items, attacked_freq)
+        if not distances:
+            break
+
+        opt_item = min(distances, key=distances.get)
+        dist = distances[opt_item]
+
+        steps = min(dist, n2)
+        fake_data.extend([opt_item] * steps)
+        attacked_freq[opt_item] += steps
+        n2 -= steps
+        pbar.update(steps)
+        iter_count += 1
+
+    pbar.close()
+
+    # 填充剩余
+    if n2 > 0:
+        fake_data.extend(list(np.random.choice(non_target_items, n2, replace=True)))
+
+    return fake_data

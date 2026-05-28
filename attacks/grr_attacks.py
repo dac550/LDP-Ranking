@@ -110,6 +110,24 @@ def _compute_distances_mpoia(
             distances[a] = delta
     return distances
 
+def _compute_distances_vectorized(
+        target_items: List[int],
+        eff_items: List[int],
+        freq: Dict[int, int],
+) -> Dict[int, int]:
+    """向量化版本的距离计算"""
+    # 转换为numpy数组
+    freq_array = np.array([freq.get(i, 0) for i in range(max(freq.keys()) + 1)])
+    target_freqs = freq_array[target_items]
+
+    distances = {}
+    for a in eff_items:
+        a_freq = freq[a]
+        qualifying_mask = target_freqs >= a_freq
+        if np.any(qualifying_mask):
+            min_target_freq = np.min(target_freqs[qualifying_mask])
+            distances[a] = min_target_freq - a_freq + 1
+    return distances
 
 def _effective_items(
     A: List[int],

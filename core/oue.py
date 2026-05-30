@@ -116,4 +116,10 @@ def UE_Aggregator_MI(reports: list, d: int, epsilon: float, optimal: bool = True
         p = np.exp(epsilon / 2) / (np.exp(epsilon / 2) + 1)
         q = 1.0 - p
 
-    return _matrix_inversion(sum(reports), n, p, q)
+    # 高效求和：支持 numpy 数组和列表
+    if isinstance(reports[0], np.ndarray):
+        total = np.sum(reports, axis=0)
+    else:
+        total = np.sum(reports, axis=0) if hasattr(reports, '__array__') else np.sum(reports, axis=0)
+
+    return _matrix_inversion(total, n, p, q)

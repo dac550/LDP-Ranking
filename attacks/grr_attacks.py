@@ -207,13 +207,23 @@ def greedy_attack_grr(
     """
     attacked_freq = expected_perturbed_freq.copy()
     fake_data = []
-    eff_items = _effective_items(non_target_items, target_items, attacked_freq)
 
-    # 添加进度条
-    pbar = tqdm(total=n2, desc="Greedy Attack Progress", unit="fake_users")
+    # 预转换为 set 加速查找
+    target_set = set(target_items)
+    non_target_set = set(non_target_items)
+
+    def get_eff_items():
+        return [a for a in non_target_set
+                if any(attacked_freq.get(t, 0) > attacked_freq.get(a, 0) for t in target_set)]
+
+    eff_items = get_eff_items()
+
+    # 使用 tqdm 进度条
+    from tqdm import tqdm
+    pbar = tqdm(total=n2, desc="Greedy Attack", unit="fake")
 
     while n2 > 0:
-        distances = _compute_distances(target_items, eff_items, attacked_freq)
+        distances = _compute_distances(target_set, eff_items, attacked_freq)
         if not distances:
             break
 
@@ -222,14 +232,16 @@ def greedy_attack_grr(
 
         steps = min(dist, n2)
         fake_data.extend([opt_item] * steps)
-        attacked_freq[opt_item] += steps
+        attacked_freq[opt_item] = attacked_freq.get(opt_item, 0) + steps
         n2 -= steps
         pbar.update(steps)
 
-        eff_items = _effective_items(non_target_items, target_items, attacked_freq)
+        eff_items = get_eff_items()
+
     pbar.close()
+
     if n2 > 0:
-        fake_data.extend(list(np.random.choice(non_target_items, n2, replace=True)))
+        fake_data.extend(np.random.choice(list(non_target_set), n2, replace=True).tolist())
 
     return fake_data
 

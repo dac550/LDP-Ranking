@@ -91,23 +91,34 @@ def _compute_distances_mpoia(
         Dict mapping each effective item → MPOIA distance.
     """
     d = len(perturbed_freq)
+
+    # 防止除零
+    if d <= 1:
+        return {}
+
     q = (1 - p) / (d - 1)
     z_alpha = norm.ppf(confidence)
 
     distances = {}
     for a in eff_items:
-        qualifying = [t for t in target_items if perturbed_freq[t] >= perturbed_freq[a]]
+        qualifying = [t for t in target_items if perturbed_freq.get(t, 0) >= perturbed_freq.get(a, 0)]
         if qualifying:
-            closest = min(qualifying, key=lambda t: perturbed_freq[t])
-            E_D = perturbed_freq[closest] - perturbed_freq[a]
-            Var_D = (
-                original_freq[closest] * p * (1 - p)
-                + (n - original_freq[closest]) * q * (1 - q)
-                + original_freq[a] * p * (1 - p)
-                + (n - original_freq[a]) * q * (1 - q)
-            )
-            delta = int(E_D + z_alpha * np.sqrt(Var_D)) + 1
-            distances[a] = delta
+            closest = min(qualifying, key=lambda t: perturbed_freq.get(t, 0))
+
+            # 使用 .get() 避免 KeyError
+            freq_closest = original_freq.get(closest, 0)
+            freq_a = original_freq.get(a, 0)
+
+            E_D = perturbed_freq.get(closest, 0) - perturbed_freq.get(a, 0)
+
+            # 方差非负保证
+            var_closest = max(0, freq_closest * p * (1 - p) + (n - freq_closest) * q * (1 - q))
+            var_a = max(0, freq_a * p * (1 - p) + (n - freq_a) * q * (1 - q))
+            Var_D = var_closest + var_a
+
+            delta = int(E_D + z_alpha * max(0, np.sqrt(Var_D))) + 1
+            distances[a] = max(1, delta)  # 至少为1
+
     return distances
 
 def _compute_distances_vectorized(

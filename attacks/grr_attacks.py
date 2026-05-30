@@ -142,10 +142,7 @@ def _effective_items(
 # Public Attack APIs
 # ---------------------------------------------------------------------------
 
-def random_attack_grr(
-    n2: int,
-    target_items: List[int],
-) -> List[int]:
+def random_attack_grr(n2: int, target_items: List[int]) -> List[int]:
     """
     Random Attack for GRR.
 
@@ -163,7 +160,8 @@ def random_attack_grr(
     Example:
         >>> fake = random_attack_grr(n2=1000, target_items=[2, 5, 8])
     """
-    return list(np.random.choice(target_items, n2))
+    choices = np.random.choice(target_items, n2)
+    return [int(x) for x in choices]
 
 from tqdm import tqdm
 def greedy_attack_grr(
